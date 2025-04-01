@@ -39,7 +39,7 @@ mkdir $OUTPUT_DIR
 # Reverse complement the reverse primer
 ANTI_PRIMER_R=$( echo "${PRIMER_R}" | tr ACGTacgtYyMmRrKkBbVvDdHh TGCAtgcaRrKkYyMmVvBbHhDd | rev )
 
-# Step 1-A: Prepare the data
+# Prepare the data
 
 # List all samples, remove the extension, and store the names
 ls $INPUT_FILES/*.f* | sed 's#.*/##' | sed 's/.f.*//' | sed 's/_R[12].*//' | sort -u > $OUTPUT_DIR/list_sample.txt
@@ -58,7 +58,7 @@ vsearch \
 # rm -f temp_decompressed.fastq
 QUALITY_ENCODING=$(grep "Guess: Original" $OUTPUT | awk -F'[+]' '{print $2}' | awk -F')' '{print $1}')
 
-# Step 1-B: Merge the paired-end reads
+# Merge the paired-end reads
 
 mkdir $OUTPUT_DIR/merged_reads/
 
@@ -80,7 +80,7 @@ for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
     
 done
 
-# Step 1-C: Checking the quality with FASTQC
+# Checking the quality with FASTQC
 
 # FastQC is available on https://www.bioinformatics.babraham.ac.uk/projects/download.html#fastqc (https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.7.zip)
 
@@ -111,7 +111,7 @@ for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
 
 done
 
-# Check if the mapping file is specified
+# Check if the mapping file is specified, if not, dereplicate the sequences at the sample level and end here
 if [ -z "$MAPPING" ]; then
     mkdir $OUTPUT_DIR/merged_derep_reads/
     for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
@@ -135,17 +135,18 @@ if [ -z "$MAPPING" ]; then
     exit 0
 fi
 
-# Step Demultiplex the sequences
-
+# Demultiplexing
+# Get the column index of the barcode and primer columns
 barcodeFwColumnIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'barcodeFw' | cut -d: -f1) - 1 ))" # getting the index of column with forward barcode etc. "-1" is applied as array below counts from 0
 primerFwColumnIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'primerFw' | cut -d: -f1) -1 ))"
 barcodeRevColumnsIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'barcodeRev' | cut -d: -f1) -1 ))"
 primerRevColumnsIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'primerRev' | cut -d: -f1) -1 ))"
  
-# Define binaries, temporary files and output files
+# Create the output directory
 mkdir "$OUTPUT_DIR/Demultiplexed_data/"
 MIN_LENGTH=200
 
+# Demultiplexing for every sample corresponding to a pair of forward and reverse reads
 for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
     INPUT="$OUTPUT_DIR/merged_reads/${sample}.fasta"
     INPUT_REVCOMP="${INPUT/.fasta/_RC.fasta}"
@@ -179,7 +180,8 @@ for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
             echo "Primer Fw: ${FwPrimer}"
             echo "Primer Rev (RC): ${RevPrimerRC}"
             echo "Barcode Rev (RC): ${RevBarcodeRC}"
-
+            
+            # Check if the sample has already been processed, if so, skip it
             if [ -f "${FINAL_FASTA}" ]; then
                 echo "${SAMPLE_NAME} (${sample}) has already been processed. Skipping..."
                 continue
