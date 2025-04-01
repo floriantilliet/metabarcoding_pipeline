@@ -73,6 +73,7 @@ for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
         --threads 0 \
         --fastq_mergepairs ${INPUT_R1} \
         --reverse ${INPUT_R2} \
+        --fastq_allowmergestagger \
         --fastq_ascii $QUALITY_ENCODING \
         --fastqout $OUTPUT \
         --quiet 2>> ${OUTPUT/.fastq/.log}
