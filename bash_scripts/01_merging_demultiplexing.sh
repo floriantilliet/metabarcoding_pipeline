@@ -1,5 +1,10 @@
 #!/bin/bash
 
+## This script merges paired-end reads, demultiplexes them, and dereplicates the sequences at the sample level. It also performs quality filtering and checks the quality of the merged reads using FastQC.
+## The following software is required: Cutadapt 5.0, VSEARCH 2.29.3, FastQC 0.12.1.
+## It requires the following parameters: path to the directory containing input fastq files, and mapping file.
+## For demultiplexing, it requires a mapping file with the following columns: SampleID, barcodeFw, primerFw, primerRev, barcodeRev.
+
 module purge
 module load bioinfo/Cutadapt/5.0
 module load bioinfo/VSEARCH/2.29.3
@@ -8,7 +13,7 @@ module load bioinfo/FastQC/0.12.1
 OUTPUT_DIR=OTU_CLUSTERING
 nb_cores=2
 
-while getopts "o:i:d:m:f:r:" option
+while getopts "o:i:d:m:" option
 do
         case $option in
                 h)
@@ -20,12 +25,6 @@ do
                     ;;
                 i)
 			        INPUT_FILES="$OPTARG"
-                    ;;
-                f)
-                    PRIMER_F="$OPTARG"
-                    ;;
-                r)
-                    PRIMER_R="$OPTARG"
                     ;;
                 m)
                     MAPPING="$OPTARG"
@@ -94,7 +93,7 @@ for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
     
 done
 
-#quality filtering
+# Quality filtering
 for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
 
     echo $sample
@@ -137,81 +136,79 @@ fi
 
 # Demultiplexing
 # Get the column index of the barcode and primer columns
+
 barcodeFwColumnIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'barcodeFw' | cut -d: -f1) - 1 ))" # getting the index of column with forward barcode etc. "-1" is applied as array below counts from 0
 primerFwColumnIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'primerFw' | cut -d: -f1) -1 ))"
 barcodeRevColumnsIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'barcodeRev' | cut -d: -f1) -1 ))"
 primerRevColumnsIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'primerRev' | cut -d: -f1) -1 ))"
  
-# Create the output directory
+# Create the output directory 
 mkdir "$OUTPUT_DIR/Demultiplexed_data/"
-MIN_LENGTH=200
+mkdir "$OUTPUT_DIR/tmp_demux"
+MIN_LENGTH=150 #200
 
-# Demultiplexing for every sample corresponding to a pair of forward and reverse reads
-for sample in $(cat $OUTPUT_DIR/list_sample.txt); do
-    INPUT="$OUTPUT_DIR/merged_reads/${sample}.fasta"
-    INPUT_REVCOMP="${INPUT/.fasta/_RC.fasta}"
+INPUT=$(find "$OUTPUT_DIR/merged_reads/" -type f -name "*.fasta" ! -name "*_RC.fasta" | head -n 1)
+INPUT_REVCOMP="${INPUT/.fasta/_RC.fasta}"
 
-    # Reverse complement fastq file
-    vsearch --quiet \
-        --threads 0 \
-        --fastx_revcomp "${INPUT}" \
-        --fastaout "${INPUT_REVCOMP}"
 
-    while read -r line; do
-        if [[ ! "$line" =~ ^#.* && ! "$line" =~ ^Sample.* ]]; then
-            IFS=$'\t' read -r -a array <<< "$line"
+# Reverse complement fastq file
+vsearch --quiet \
+    --threads 0 \
+    --fastx_revcomp "${INPUT}" \
+    --fastaout "${INPUT_REVCOMP}"
 
-            # Get sequences
-            FwBarcode="${array[${barcodeFwColumnIdx}]}"
-            FwPrimer="${array[${primerFwColumnIdx}]}"
-            RevBarcode="${array[${barcodeRevColumnsIdx}]}"
-            RevBarcodeRC=$( echo "${RevBarcode}" | tr ACGTacgtYyMmRrKkBbVvDdHh TGCAtgcaRrKkYyMmVvBbHhDd | rev )
-            RevPrimer="${array[${primerRevColumnsIdx}]}"
-            RevPrimerRC=$( echo "${RevPrimer}" | tr ACGTacgtYyMmRrKkBbVvDdHh TGCAtgcaRrKkYyMmVvBbHhDd | rev )
-            SAMPLE_NAME="${array[0]}"
-            
-            # Output file names
-            LOG="$OUTPUT_DIR/Demultiplexed_data/${SAMPLE_NAME}_${sample}.log"
-            FINAL_FASTA="$OUTPUT_DIR/Demultiplexed_data/${SAMPLE_NAME}_${sample}.fas"
-            
-            # Some information
-            echo "${SAMPLE_NAME} (${sample}) is being processed.."
-            echo "Barcode Fw: ${FwBarcode}"
-            echo "Primer Fw: ${FwPrimer}"
-            echo "Primer Rev (RC): ${RevPrimerRC}"
-            echo "Barcode Rev (RC): ${RevBarcodeRC}"
-            
-            # Check if the sample has already been processed, if so, skip it
-            if [ -f "${FINAL_FASTA}" ]; then
-                echo "${SAMPLE_NAME} (${sample}) has already been processed. Skipping..."
-                continue
-            fi
-            
-            function trim_without_ambiguity {
+while read -r line; do
+    if [[ ! "$line" =~ ^#.* && ! "$line" =~ ^Sample.* ]]; then
+        IFS=$'\t' read -r -a array <<< "$line"
 
-                SEQTOT="${FwBarcode}${FwPrimer}${RevPrimerRC}${RevBarcodeRC}"
-                MIN_MATCHED=${#SEQTOT}
-                ERROR_RATE=0
+        # Get sequences
+        FwBarcode="${array[${barcodeFwColumnIdx}]}"
+        FwPrimer="${array[${primerFwColumnIdx}]}"
+        RevBarcode="${array[${barcodeRevColumnsIdx}]}"
+        RevBarcodeRC=$( echo "${RevBarcode}" | tr ACGTacgtYyMmRrKkBbVvDdHh TGCAtgcaRrKkYyMmVvBbHhDd | rev )
+        RevPrimer="${array[${primerRevColumnsIdx}]}"
+        RevPrimerRC=$( echo "${RevPrimer}" | tr ACGTacgtYyMmRrKkBbVvDdHh TGCAtgcaRrKkYyMmVvBbHhDd | rev )
+        SAMPLE_NAME="${array[0]}"
+        
+        # Output file names
+        LOG="$OUTPUT_DIR/Demultiplexed_data/${SAMPLE_NAME}.log"
+        FINAL_FASTA="$OUTPUT_DIR/Demultiplexed_data/${SAMPLE_NAME}.fas"
+        
+        # Some information
+        echo "${SAMPLE_NAME} is being processed.."
+        echo "Barcode Fw: ${FwBarcode}"
+        echo "Primer Fw: ${FwPrimer}"
+        echo "Primer Rev (RC): ${RevPrimerRC}"
+        echo "Barcode Rev (RC): ${RevBarcodeRC}"
 
-                cat "${INPUT}" "${INPUT_REVCOMP}" | cutadapt -j 0 -g "${FwBarcode}${FwPrimer}...${RevPrimerRC}${RevBarcodeRC}" --discard-untrimmed --minimum-length "${MIN_LENGTH}" -O ${MIN_MATCHED} -e "${ERROR_RATE}" - 2> "${LOG}" > "$OUTPUT_DIR/temp_${sample}.fasta"
-            }
-            
-
-            trim_without_ambiguity
-
-            # Dereplicate at the study level
-            vsearch --quiet \
-                --threads 0 \
-                --derep_fulllength "$OUTPUT_DIR/temp_${sample}.fasta" \
-                --sizein \
-                --sizeout \
-                --fasta_width 0 \
-                --relabel_sha1 \
-                --output "${FINAL_FASTA}" 2>> "${LOG}"
-
+        if [ -f "${FINAL_FASTA}" ]; then
+            echo "${SAMPLE_NAME} has already been processed. Skipping..."
+            continue
         fi
-    done < "${MAPPING}"
-done
+        
+        function trim_without_ambiguity {
+
+            SEQTOT="${FwBarcode}${FwPrimer}${RevPrimerRC}${RevBarcodeRC}"
+            MIN_MATCHED=${#SEQTOT}
+            ERROR_RATE=0
+
+            cat "${INPUT}" "${INPUT_REVCOMP}" | cutadapt --cores 0 -g "${FwBarcode}${FwPrimer}...${RevPrimerRC}${RevBarcodeRC}" --discard-untrimmed --minimum-length "${MIN_LENGTH}" -O ${MIN_MATCHED} -e "${ERROR_RATE}" - 2> "${LOG}" > "$OUTPUT_DIR/tmp_demux/temp_${SAMPLE_NAME}.fasta"
+        }
+
+        trim_without_ambiguity
+
+        # Dereplicate at the study level
+        vsearch --quiet \
+            --threads 0 \
+            --derep_fulllength "$OUTPUT_DIR/tmp_demux/temp_${SAMPLE_NAME}.fasta" \
+            --sizein \
+            --sizeout \
+            --fasta_width 0 \
+            --relabel_sha1 \
+            --output "${FINAL_FASTA}" 2>> "${LOG}"
+
+    fi
+done < "${MAPPING}"
 
 # Note: the option sha1 (encoding system) is giving the same names to the identical amplicons across samples
 

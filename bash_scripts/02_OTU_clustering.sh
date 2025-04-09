@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This script performs OTU clustering using VSEARCH and generates a contingency table.
+# It requires the following software: VSEARCH 2.29.3, Python 3.11.1.
+# It also requires the following parameters: path to the directory containing input fasta files, path to the database, path to the scripts, output directory, abundance threshold, and identity percentage.
+
 module purge
 module load bioinfo/VSEARCH/2.29.3
 module load devel/python/Python-3.11.1
@@ -7,8 +11,9 @@ module load devel/python/Python-3.11.1
 nb_cores=2
 OUTPUT_DIR=OTU_CLUSTERING
 ABUNDANCE=10
+IDENTITY_PERCENTAGE=0.97
 
-while getopts "i:s:d:o:a:" option
+while getopts "i:s:d:o:a:c:" option
 do
         case $option in
                 h)
@@ -30,6 +35,8 @@ do
                 a)
                     ABUNDANCE="$OPTARG"
                     ;;
+                c)
+                    IDENTITY_PERCENTAGE="$OPTARG"
 
         esac
 done
@@ -45,7 +52,6 @@ mkdir $OUTPUT_DIR
 
 cat $INPUT_FILES/*.f* > $OUTPUT_DIR/reads_amplicon.fasta
 
-# Dereplicate the sequences
 vsearch \
     --derep_fulllength $OUTPUT_DIR/reads_amplicon.fasta \
     --sizein \
@@ -56,33 +62,26 @@ vsearch \
 
 rm $OUTPUT_DIR/reads_amplicon.fasta
 
-# Sort the sequences by size
 vsearch -sortbysize $OUTPUT_DIR/reads_amplicon_derep.fasta -output $OUTPUT_DIR/reads_amplicon_sorted.fasta -minsize 1
 
 rm $OUTPUT_DIR/reads_amplicon_derep.fasta
 
-# Cluster the sequences at 97% identity
 vsearch -cluster_size  $OUTPUT_DIR/reads_amplicon_sorted.fasta \
     --threads $nb_cores \
-    --id 0.97 --centroids $OUTPUT_DIR/reads_OTU97.fasta \
+    --id $IDENTITY_PERCENTAGE --centroids $OUTPUT_DIR/reads_OTU97.fasta \
     --uc $OUTPUT_DIR/clusters_OTU97.uc \
     --sizein --sizeout
 
-# Sort the clusterized sequences by size
 vsearch --fasta_width 0 --sortbysize $OUTPUT_DIR/reads_OTU97.fasta --output $OUTPUT_DIR/reads_OTU97_final.fasta
 
-# Map the reads to the OTUs
 python3 $path_scripts/map2qiime.py $OUTPUT_DIR/clusters_OTU97.uc > $OUTPUT_DIR/reads_mapped_OTU97.txt
 
-# Generate the stats file
 python3 $path_scripts/make_stats.py $OUTPUT_DIR/reads_OTU97_final.fasta > $OUTPUT_DIR/stats_file_OTU97.txt
 
-# Chimera removal
 vsearch --uchime_denovo $OUTPUT_DIR/reads_OTU97_final.fasta \
     --uchimeout $OUTPUT_DIR/reads_OTU97.uchime \
     --nonchimeras $OUTPUT_DIR/reads_OTU97_nonchimeras.fasta
 
-# Taxonomic assignation
 vsearch --usearch_global $OUTPUT_DIR/reads_OTU97_nonchimeras.fasta \
     --threads $nb_cores \
     --dbmask none \
@@ -99,7 +98,6 @@ vsearch --usearch_global $OUTPUT_DIR/reads_OTU97_nonchimeras.fasta \
     --iddef 4 \
     --userout $OUTPUT_DIR/taxonomy_OTU97.txt
 
-# Generate the OTU table
 STATS="$OUTPUT_DIR/stats_file_OTU97.txt"
 OTUS="$OUTPUT_DIR/reads_mapped_OTU97.txt"
 REPRESENTATIVES="$OUTPUT_DIR/reads_OTU97_final.fasta"
@@ -117,15 +115,13 @@ python3 \
     "${UCHIME}" \
     "${ASSIGNMENTS}" \
     $INPUT_FILES/*.f* > "${OTU_TABLE}"
-
-# Filter the OTU table 
+   
 FILTERED="${OTU_TABLE/.txt/_filtered.txt}"
 head -n 1 "${OTU_TABLE}" > "${FILTERED}"
 cat "${OTU_TABLE}" | awk '$5 == "N" && $4 >= 200 && $2 >= $ABUNDANCE' >> "${FILTERED}"
 
 cd $OUTPUT_DIR
 
-# Generate the identity distribution
 python3 $DIR/$path_scripts/identity_distribution.py ../$OTU_TABLE
 
 cd $DIR

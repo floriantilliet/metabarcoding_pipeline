@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# This script prepares a database for taxonomic assignation by trimming primers from the input sequences using Cutadapt.
+# It requires the following software: Cutadapt 5.0.
+# It also requires the following parameters: raw database input fasta file (can be compressed), forward primer, reverse primer.
+
 module purge
 module load bioinfo/Cutadapt/5.0
 
@@ -68,7 +72,7 @@ MIN_LENGTH=32 # minimum sequence length
 MIN_F=$(( ${#PRIMER_F} / 2 )) # should match at least 50% of the forward primer
 MIN_R=$(( ${#PRIMER_R} / 2 )) # should match at least 50% of the reverse primer
 ERROR_RATE=0.2
-CUTADAPT="cutadapt --discard-untrimmed --minimum-length ${MIN_LENGTH} --no-indels -e ${ERROR_RATE}"
+CUTADAPT="cutadapt --cores 0 --discard-untrimmed --minimum-length ${MIN_LENGTH} --no-indels -e ${ERROR_RATE}"
 
 
 # Trim forward
