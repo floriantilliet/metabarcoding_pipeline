@@ -10,8 +10,6 @@ module load bioinfo/Cutadapt/5.0
 DIR="$(pwd)"
 cd $DIR
 
-INPUT=$1
-
 while getopts "i:f:r:" option
 do
         case $option in

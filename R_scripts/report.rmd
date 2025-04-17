@@ -1,0 +1,100 @@
+---
+title: "K-mergency report"
+date: "`r Sys.Date()`"
+output: html_document
+params:
+  dir: "default_value"
+  output: "default_value"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+
+
+```{R, echo=FALSE, warnings=FALSE}
+library(ggplot2)
+
+df <- read.table(paste0(params$dir, "/5_annotated_repeated_kmers/merged_dump_annotated_", params$output, ".txt"), sep = "\t", header = FALSE)
+
+names(df) <- c("kmers", "reads_count", "assembly_count", "repetition_type")
+
+df$normalized_read_counts <- round(df$reads_count / 34)
+
+df$compression_rate_percent <- round(df$assembly_count / df$normalized_read_counts) * 100
+df$compression_rate_percent <- pmin((df$assembly_count / df$normalized_read_counts) * 100, 100)
+df$compression_rate_percent <- pmin((df$assembly_count / df$normalized_read_counts) * 100, 100)
+df$compression_rate_percent <- round(100- df$compression_rate_percent,3)
+
+head(df)
+
+write.table(df, file = paste0(params$dir, "/6_repetitions_stats/final_repetition_type_table_", params$output, ".txt"), sep = "\t", row.names = FALSE, quote = FALSE)
+
+
+```
+
+```{R, echo=FALSE, warnings=FALSE}
+ggplot(df, aes(x = repetition_type, y = compression_rate_percent, fill = repetition_type)) +
+  geom_boxplot(alpha = 0.7) +  # Add a boxplot
+  labs(
+    title = "Distribution of Read-to-Assembly Compression Rate",
+    x = "Repetition Type",
+    y = "Compression Rate (%)",
+    fill = "Repetition Type"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate labels for readability
+
+```
+
+
+```{R, echo=FALSE, warnings=FALSE}
+
+ggplot(df, aes(x = repetition_type, y = log10(normalized_read_counts), fill = repetition_type)) +
+  geom_bar(stat = "identity", position = "stack")+
+  labs(
+    title = "kmers repetition types in reads",
+    x = "repetition type",
+    y = "log10(repeated kmer frequency in reads)",
+    fill = "repetition type"
+  ) +
+  scale_y_continuous(trans = 'log10')+
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+## repeated kmers frequency plot
+```{R, echo=FALSE, warnings=FALSE}
+ggplot(df, aes(x = log10(normalized_read_counts), y = log10(assembly_count), color = repetition_type)) +
+  geom_point(alpha = 0.6) +
+  geom_density2d(color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red")+
+  labs(
+    title = "Comparison of kmer frequencies",
+    x = "Log10(Frequency of kmers in reads)",
+    y = "Log10(Frequency of kmers in assembly)",
+    color = "Repetition Type"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{R, echo=FALSE, warnings=FALSE}
+
+ggplot(df, aes(x = log10(normalized_read_counts), y = log10(assembly_count), color = repetition_type)) +
+  geom_point(alpha = 0.6) +
+  geom_density2d(color = "black") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red")+
+  labs(
+    title = "Comparison of kmer frequencies by repetition type",
+    x = "Log10(Frequency of kmers in reads)",
+    y = "Log10(Frequency of kmers in assembly)",
+    color = "Repetition Type"
+  ) +
+  theme_minimal() +
+  facet_wrap(~ repetition_type, scales = "free")
+
+```
