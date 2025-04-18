@@ -19,9 +19,9 @@ These scripts require a shell/Linux computing environment and the following soft
 You can either run the whole script at once, or each of the steps individually.
 
 Running the whole script:
-    ```bash
-    ./Illumina_Pipeline.sh 
-    ```
+```bash
+./Illumina_Pipeline.sh 
+```
 - `-h` Display the help message.
 
 Running each step individually:
