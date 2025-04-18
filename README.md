@@ -33,6 +33,7 @@ Step 0: Creating the database for taxonomic assignation.
 -  `-h` Display the help message:
 - `-i` Provide the path to the FASTA file of the raw databased. Compressed formats are accepted.
 - `-f` `-r` Specify the forward/reverse primer sequence. Ex: "ACAGTCGTCGAT"  
+
 Step 1: Merging/demultiplexing the data.
 ```bash
 ./01_merging_demultiplexing.sh 
