@@ -34,13 +34,13 @@ Step 0: Creating the database for taxonomic assignation.
 - `-i` Provide the path to the FASTA file of the raw databased. Compressed formats are accepted.
 - `-f` `-r` Specify the forward/reverse primer sequence. Ex: "ACAGTCGTCGAT"  
 Step 1: Merging/demultiplexing the data.
-    ```bash
-    ./01_merging_demultiplexing.sh 
-    ```
+```bash
+./01_merging_demultiplexing.sh 
+```
 Step 2: Clustering at 97% and taxonomic assignation.
-    ```bash
-    ./02_OTU_Clustering.sh  
-    ```
+```bash
+./02_OTU_Clustering.sh  
+```
 ## Repository Structure
 ```
 /home/florian/work/CRBE_STAGE2A/gitrep/
