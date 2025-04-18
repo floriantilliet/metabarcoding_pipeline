@@ -22,17 +22,17 @@ Running the whole script:
     ```bash
     ./Illumina_Pipeline.sh 
     ```
-- '-h' Display the help message.
+- `-h` Display the help message.
 
 Running each step individually:
 
 Step 0: Creating the database for taxonomic assignation.
-    ```bash
-    ./00_prepare_DB.sh -i "path_to_raw_database" [-f "forward_primer_sequence"] [-r "reverse_primer_sequence"] [-h]
-    ```
--  '-h' Display the help message:
-- '-i' Provide the path to the FASTA file of the raw databased. Compressed formats are accepted.
-- '-f' '-r' Specify the forward/reverse primer sequence. Ex: "ACAGTCGTCGAT"  
+``` bash
+./00_prepare_DB.sh -i "path_to_raw_database" [-f "forward_primer_sequence"] [-r "reverse_primer_sequence"] [-h]
+```
+-  `-h` Display the help message:
+- `-i` Provide the path to the FASTA file of the raw databased. Compressed formats are accepted.
+- `-f` `-r` Specify the forward/reverse primer sequence. Ex: "ACAGTCGTCGAT"  
 Step 1: Merging/demultiplexing the data.
     ```bash
     ./01_merging_demultiplexing.sh 
