@@ -30,7 +30,7 @@ Step 0: Creating the database for taxonomic assignation.
 ``` bash
 ./00_prepare_DB.sh -i path_to_raw_database [-o output_directory] [-f forward_primer_sequence] [-r reverse_primer_sequence] [-h]
 ```
-- `-h` Display the help message:
+- `-h` Display the help message.
 - `-i` Provide the path to input FASTA file of the raw database. Compressed formats are accepted.
 - `-o` Specify an output directory (default: current directory).
 - `-f` `-r` Specify the forward/reverse primer sequence. Ex: "ACAGTCGTCGAT"  
@@ -39,7 +39,7 @@ Step 1: Merging/demultiplexing the data.
 ```bash
 ./01_merging_demultiplexing.sh -i path_to_directory_containing_raw_reads [-o output_directory] [-m path_to_mapping_file] [-h]
 ```
-- `-h` Display the help message:
+- `-h` Display the help message.
 - `-i` Provide the path to the directory containing the FASTQ files of the raw reads. Compressed formats are accepted.
 - `-o` Specify an output directory (default: current directory).
 - `-m` Specify a mapping file with the following columns: SampleID, barcodeFw, primerFw, primerRev, barcodeRev. Demultiplexing will only be done if a mapping file is specified. Otherwise only the merging will be done.
@@ -48,7 +48,7 @@ Step 2: Clustering at 97% and taxonomic assignation.
 ```bash
 ./02_OTU_Clustering.sh -i path_to_directory_containing_reads -d path_to_database [-o output_directory] [-c identity_percentage]
 ```
-- `-h` Display the help message:
+- `-h` Display the help message.
 - `-i` Provide the path to the directory containing the FASTA files of the reads. Compressed formats are accepted.
 - `-o` Specify an output directory (default: current directory).
 - `-d` Provide the path to the database FASTA file for taxonomic assignation.

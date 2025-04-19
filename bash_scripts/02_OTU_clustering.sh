@@ -11,6 +11,7 @@ module load devel/python/Python-3.11.1
 nb_cores=2
 OUTPUT_DIR=OTU_CLUSTERING
 IDENTITY_PERCENTAGE=0.97
+path_scripts=$0/../python_scripts
 
 while getopts "i:s:d:o:a:c:" option
 do
@@ -29,9 +30,6 @@ do
                     ;;
                 d)
                     path_to_db="$OPTARG"
-                    ;;
-                s)
-                    path_scripts="$OPTARG"
                     ;;
                 o)
                     OUTPUT_DIR="$OPTARG"
