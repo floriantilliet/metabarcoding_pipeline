@@ -17,7 +17,11 @@ while getopts "o:i:d:m:" option
 do
         case $option in
                 h)
-			        echo "help message"
+                    echo "Usage: $0 -i <input_files> -o <output_directory> -m <mapping_file>"
+                    echo "  -i  Input directory containing fastq files (can be compressed)"
+                    echo "  -o  Output directory (default: OTU_CLUSTERING)"
+                    echo "  -m  Mapping file (tab-separated) with the following columns: SampleID, barcodeFw, primerFw, primerRev, barcodeRev"
+                    echo "  -h  Show this help message"
                     exit 0
                     ;;
                 o)
@@ -145,7 +149,7 @@ primerRevColumnsIdx="$(( $(sed -n $'1s/\t/\\\n/gp' $MAPPING | grep -nx 'primerRe
 # Create the output directory 
 mkdir "$OUTPUT_DIR/Demultiplexed_data/"
 mkdir "$OUTPUT_DIR/tmp_demux"
-MIN_LENGTH=150 #200
+MIN_LENGTH=150
 
 INPUT=$(find "$OUTPUT_DIR/merged_reads/" -type f -name "*.fasta" ! -name "*_RC.fasta" | head -n 1)
 INPUT_REVCOMP="${INPUT/.fasta/_RC.fasta}"

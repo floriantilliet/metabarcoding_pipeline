@@ -10,9 +10,17 @@ module load bioinfo/Cutadapt/5.0
 DIR="$(pwd)"
 cd $DIR
 
-while getopts "i:f:r:" option
+while getopts "hi:o:f:r:" option
 do
         case $option in
+                h)
+                    echo "Usage: $0 -i <input_file> -f <forward_primer> -r <reverse_primer> -o <output_directory>"
+                    echo "  -i  Input raw database file (FASTA format, can be compressed)"
+                    echo "  -f  Forward primer sequence"
+                    echo "  -r  Reverse primer sequence"
+                    echo "  -o  Output directory (default: current directory)"
+                    exit 0
+                    ;;
                 i)
                     INPUT="$OPTARG"
                     ;;
@@ -21,6 +29,9 @@ do
                     ;;
                 r)
                     PRIMER_R="$OPTARG"
+                    ;;
+                o)
+                    DIR="$OPTARG"
                     ;;
         esac
 done

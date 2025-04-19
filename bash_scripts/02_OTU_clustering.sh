@@ -10,14 +10,18 @@ module load devel/python/Python-3.11.1
 
 nb_cores=2
 OUTPUT_DIR=OTU_CLUSTERING
-ABUNDANCE=10
 IDENTITY_PERCENTAGE=0.97
 
 while getopts "i:s:d:o:a:c:" option
 do
         case $option in
                 h)
-			        echo "help message"
+                    echo "Usage: $0 -i <input_files> -s <path_scripts> -d <path_db> -o <output_directory> -c <identity_percentage>"
+                    echo "  -i  Input directory containing fasta files (can be compressed)"
+                    echo "  -d  Path to the database"
+                    echo "  -o  Output directory (default: OTU_CLUSTERING)"
+                    echo "  -c  Identity percentage for clustering (default: 0.97)"
+                    echo "  -h  Show this help message"
                     exit 0
                     ;;
                 i)
@@ -32,11 +36,9 @@ do
                 o)
                     OUTPUT_DIR="$OPTARG"
                     ;;    
-                a)
-                    ABUNDANCE="$OPTARG"
-                    ;;
                 c)
                     IDENTITY_PERCENTAGE="$OPTARG"
+                    ;;
 
         esac
 done
@@ -118,7 +120,7 @@ python3 \
    
 FILTERED="${OTU_TABLE/.txt/_filtered.txt}"
 head -n 1 "${OTU_TABLE}" > "${FILTERED}"
-cat "${OTU_TABLE}" | awk '$5 == "N" && $4 >= 200 && $2 >= $ABUNDANCE' >> "${FILTERED}"
+cat "${OTU_TABLE}" | awk '$5 == "N" && $4 >= 200 && $2 >= 10' >> "${FILTERED}"
 
 cd $OUTPUT_DIR
 
